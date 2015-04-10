@@ -1,0 +1,107 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Node Scrim</title>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+		<meta name="description" content="" />
+		<meta name="keywords" content="" />
+		<script src="js/jquery.min.js"></script>
+		<script src="/socket.io/socket.io.js"></script>
+		<link href="http://www.picnicss.com/nut/picnic_3_2+nav+modal_2.min.css" rel="stylesheet" type="text/css">
+
+		<style type="text/css">
+			body {
+				padding:50px;
+			}
+			ul {
+				list-style-type: none;
+				position:absolute;
+				top:0px;
+				right:50px;
+			}
+
+			ul li img:hover {
+				border-style: solid;
+				border-width: 1px;
+				border-color: red;
+			}
+
+			.banned {
+				opacity: 0.5;
+			}
+
+			#chatbox {
+				border-style: solid;
+				border-width: 2px;
+				border-color: #F5F5F5;
+				border-radius: 5px;
+				padding:5px;
+				width:655px;
+			}
+
+			#chat {
+				background-color:#FAFAFA;
+			}
+		</style>
+
+		<script type="text/javascript">
+			var chat = io.connect('http://localhost:8080/chat');
+			var permission = false;
+			var userName;
+
+			chat.on('message', function(data) {
+				$("#chat").append(data.name + ": " + data.content + "</br>");
+			});
+
+			$(document).ready(function() {
+				$("#messaging").hide();
+
+				$("li img").click(function() {
+					if(permission) {
+						$(this).addClass("banned");
+					}
+				});
+
+				$("#submit").click(function() {
+					chat.emit('message', {
+						name : $("#name").val(),
+						content : $("#textinput").val()
+					});
+				})
+
+				$("#setName").click(function() {
+					userName = $("#name").val();
+					$("#naming").hide();
+					$("#messaging").show();
+				})
+			});
+		</script>
+	</head>
+	<body>
+		<div id="chatbox">
+			<div id="chat" style="height:480px; width:640px; overflow-x:hidden; overflow-y:scroll;">
+
+			</div>
+			<div id="messageSection" style="width:640px">
+				<div id="naming">
+					<label>Name:</label><input type="text" id="name" />
+					<div id="setName" class="button">Set Name</div>
+				</div>
+				<div id="messaging">
+					<label>Message:</label>
+					<input type="text" id="textinput" />
+					<input type="submit" id="submit" value="Submit" />
+				</div>
+			</div>
+		</div>
+		<ul id="mapPool">
+			<li><img src="images/dust2.png" /></li>
+			<li><img src="images/mirage.png" /></li>
+			<li><img src="images/cache.png" /></li>
+			<li><img src="images/cbble.png" /></li>
+			<li><img src="images/overpass.png" /></li>
+			<li><img src="images/train.png" /></li>
+			<li><img src="images/inferno.png" /></li>
+		</ul>
+	</body>
+</html>
