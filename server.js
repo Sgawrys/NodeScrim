@@ -3,22 +3,34 @@ var app = express();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
 var config = require('./config');
+var session = require('express-session');
 var passport = require('passport'),
 	SteamStrategy = require('passport-steam').Strategy;
 
-
-app.use(express.static(__dirname+"/assets/"));
-app.use(passport.initialize());
-app.use(passport.session());
-
-
-var chat = io.of('/chat');
+var MAX_CLIENT_CONN = 2;
+var ROOM_ID_LENGTH = 5;
 
 //Associative array containing a room ID and room count of clients connected.
 var rooms = []
 //Associative array containing a room ID mapped to an array of client names.
 var users = []
 
+//Namespace for multi-room chat
+var chat = io.of('/chat');
+
+//Use Jade templating engine, Passport, and Express Sessions
+app.set('view engine', 'jade')
+app.use(express.static(__dirname+"/assets/"));
+app.use(session({
+	secret : 'daredevil',
+	resave: false,
+	saveUninitialized: true
+	})
+);
+app.use(passport.initialize());
+app.use(passport.session());
+
+//Passport serialization for storing user information within sessions.
 passport.serializeUser(function(user, done) {
   done(null, user);
 });
@@ -27,6 +39,7 @@ passport.deserializeUser(function(obj, done) {
   done(null, obj);
 });
 
+//SteamStrategy as defined under passport-steam, API key is stored in config.js .
 passport.use(new SteamStrategy({
 	returnURL: 'http://localhost:8080/auth/return',
 	realm:'http://localhost:8080/',
@@ -34,24 +47,35 @@ passport.use(new SteamStrategy({
 },
 	function(identifier, profile, done) {
 		process.nextTick(function () {
-			console.log(identifier);
 			profile.identifier = identifier;
 			return done(null, profile);
 		});
 	}
 ));
 
-var MAX_CLIENT_CONN = 2;
-var ROOM_ID_LENGTH = 5;
-
 app.get('/', function(req, res) {
 	res.sendFile(__dirname + '/public/index.html');
 });
 
-app.get('/room/:roomId', function(req, res) {
-	console.log("Room ID is : " + req.params['roomId']);
+app.get('/room/:roomId',
+	ensureAuthenticated,
+	function(req, res) {
 
+	console.log("Room ID is : " + req.params['roomId']);
 	res.sendFile(__dirname + '/public/room.html');
+});
+
+//Redirection to home page with new user information to display.
+app.get('/login', ensureAuthenticated,
+	function(req, res) {
+		res.render('index', { 
+			displayName : req.user.displayName,
+			id : req.user.id,
+			photo_s : req.user.photos[0].value,
+			photo_m : req.user.photos[1].value,
+			photo_l : req.user.photos[2].value
+		}
+	);
 });
 
 //Generate an unused room ID
@@ -69,21 +93,34 @@ app.post('/room', function(req, res) {
 	res.json({roomId : newRoomID});
 });
 
+//Make the authentication call to steam.
 app.get('/auth/steam',
 	passport.authenticate('steam'),
 	function(req, res) {
 		//Doesn't matter won't get called.
 });
 
+//Callback for when user signs in on the steamcommunity site.
 app.get('/auth/return',
 	passport.authenticate('steam'),
  	function(req, res) {
-		console.log(req.isAuthenticated());
-		console.log(req.user);
-		res.render(__dirname + '/public/index.html', {user : req.user});
-});
+		res.redirect('/login');
+	}
+);
 
+//Logout from steam account.
+app.get('/auth/logout',
+	ensureAuthenticated,
+	function(req, res) {
+		req.logout();
+		res.redirect('/');
+	}
+);
+
+//Socket.io specific code dealing with chat namespace
 chat.on('connection', function(socket) {
+	
+	//Upon joining room, if max users for match already found should redirect to another page
 	socket.on('joinRoom', function(data) {
 		if(rooms[data.url] === undefined) {
 			socket.emit('errorCode', {'statusCode' : 1});
@@ -100,6 +137,7 @@ chat.on('connection', function(socket) {
 		}
 	});
 
+	//Send message to everyone within the same room as the user.
 	socket.on('message', function(data) {
 		chat.to(socket.rooms[1]).emit('response', data);
 	});
@@ -116,4 +154,10 @@ chat.on('connection', function(socket) {
 
 server.listen(8080, function() {
 	console.log("Listening on port 8080.");
-})
+});
+
+//Middleware function that checks for authenticated users before proceeding.
+function ensureAuthenticated(req, res, next) {
+	if(req.isAuthenticated()) { return next(); }
+	res.redirect('/');
+}
