@@ -10,8 +10,10 @@ var chat = io.of('/chat');
 
 //Associative array containing a room ID and room count of clients connected.
 var rooms = []
+
+
 var MAX_CLIENT_CONN = 2;
-var ROOM_ID_LENGTH = 5
+var ROOM_ID_LENGTH = 5;
 
 app.get('/', function(req, res) {
 	res.sendFile(__dirname + '/public/index.html');
