@@ -60,10 +60,10 @@ app.get('/', function(req, res) {
 app.get('/room/:roomId',
 	ensureAuthenticated,
 	function(req, res) {
-
-	console.log("Room ID is : " + req.params['roomId']);
-	res.sendFile(__dirname + '/public/room.html');
-});
+		console.log("Room ID is : " + req.params['roomId']);
+		res.sendFile(__dirname + '/public/room.html');
+	}
+);
 
 //Redirection to home page with new user information to display.
 app.get('/login', ensureAuthenticated,
