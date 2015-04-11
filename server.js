@@ -22,7 +22,7 @@ var chat = io.of('/chat');
 app.set('view engine', 'jade')
 app.use(express.static(__dirname+"/assets/"));
 app.use(session({
-	secret : 'daredevil',
+	secret : config.sessionSecret,
 	resave: false,
 	saveUninitialized: true
 	})
