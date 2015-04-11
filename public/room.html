@@ -5,7 +5,7 @@
 		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 		<meta name="description" content="" />
 		<meta name="keywords" content="" />
-		<script src="js/jquery.min.js"></script>
+		<script src="../js/jquery.min.js"></script>
 		<script src="/socket.io/socket.io.js"></script>
 		<link href="http://www.picnicss.com/nut/picnic_3_2+nav+modal_2.min.css" rel="stylesheet" type="text/css">
 
@@ -67,6 +67,14 @@
 				}
 			});
 
+			chat.on('updateClients', function(data) {
+
+				$("#clientPool").empty();
+				$.each(data.clients, function(k, v) {
+					$("#clientPool").append("<li>" + v + "</li>");
+				});
+			});
+
 			$(document).ready(function() {
 				$("#messaging").hide();
 
@@ -85,6 +93,10 @@
 
 				$("#setName").click(function() {
 					userName = $("#name").val();
+
+					chat.emit('register', {
+						name : userName
+					});
 					$("#naming").hide();
 					$("#messaging").show();
 				})
@@ -103,8 +115,7 @@
 					</div>
 					<div id="messageSection" >
 						<div id="naming">
-							<a href="#"><img src="images/steam_small.png" /></a>
-							<input type="text" id="name" />
+														<input type="text" id="name" />
 							<button id="setName">Set</button>
 						</div>
 						<div id="messaging">
@@ -116,28 +127,33 @@
 				</div>
 			</div>
 			
-			<div>
-				<ul id="serverPool">
-					<li><div class="button">New York</div></li>
-					<li><div class="button">San Francisco</div></li>
-					<li><div class="button">Amsterdam</div></li>
-					<li><div class="button">London</div></li>
-				</ul>
+			<div class="row">
+				<div>
+					<ul id="clientPool">
+
+					</ul>
+				</div>
+				<div></div>
+				<div>
+					<ul id="serverPool">
+						<li><div class="button">New York</div></li>
+						<li><div class="button">San Francisco</div></li>
+						<li><div class="button">Amsterdam</div></li>
+						<li><div class="button">London</div></li>
+					</ul>
+				</div>
 			</div>
 			<div>
 				<ul id="mapPool">
-					<li><img src="images/dust2.png" /></li>
-					<li><img src="images/mirage.png" /></li>
-					<li><img src="images/cache.png" /></li>
-					<li><img src="images/cbble.png" /></li>
-					<li><img src="images/overpass.png" /></li>
-					<li><img src="images/train.png" /></li>
-					<li><img src="images/inferno.png" /></li>
+					<li><img src="../images/dust2.png" /></li>
+					<li><img src="../images/mirage.png" /></li>
+					<li><img src="../images/cache.png" /></li>
+					<li><img src="../images/cbble.png" /></li>
+					<li><img src="../images/overpass.png" /></li>
+					<li><img src="../images/train.png" /></li>
+					<li><img src="../images/inferno.png" /></li>
 				</ul>
 			</div>
-		</div>
-		<div class="row">
-
 		</div>
 	</body>
 </html>
