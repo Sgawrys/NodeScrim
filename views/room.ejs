@@ -50,13 +50,13 @@
 		<script type="text/javascript">
 			var chat = io.connect('http://localhost:8080/chat');
 			var permission = false;
-			var userName;
+			var userName = "<%= displayName %>";
 			var roomIdLength = 5;
 
 			chat.emit('joinRoom', { url : document.URL.substring(document.URL.length-roomIdLength)} );
 
 			chat.on('response', function(data) {
-				$("#chat").append(data.name + ": " + data.content + "</br>");
+				$("#chat").append('<img src='+data.photo+'></img>' + data.name + ": " + data.content + "</br>");
 			});
 
 			chat.on('errorCode', function(data) {
@@ -76,7 +76,6 @@
 			});
 
 			$(document).ready(function() {
-				$("#messaging").hide();
 
 				$("li img").click(function() {
 					if(permission) {
@@ -86,19 +85,10 @@
 
 				$("#submit").click(function() {
 					chat.emit('message', {
-						name : $("#name").val(),
-						content : $("#textinput").val()
+						name : userName,
+						content : $("#textinput").val(),
+						photo : "<%= photo_s %>"
 					});
-				})
-
-				$("#setName").click(function() {
-					userName = $("#name").val();
-
-					chat.emit('register', {
-						name : userName
-					});
-					$("#naming").hide();
-					$("#messaging").show();
 				})
 			});
 		</script>
@@ -114,10 +104,6 @@
 
 					</div>
 					<div id="messageSection" >
-						<div id="naming">
-														<input type="text" id="name" />
-							<button id="setName">Set</button>
-						</div>
 						<div id="messaging">
 							<label>Message:</label>
 							<input type="text" id="textinput" />

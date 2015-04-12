@@ -19,7 +19,7 @@ var users = []
 var chat = io.of('/chat');
 
 //Use Jade templating engine, Passport, and Express Sessions
-app.set('view engine', 'jade')
+app.set('view engine', 'ejs')
 app.use(express.static(__dirname+"/assets/"));
 app.use(session({
 	secret : config.sessionSecret,
@@ -54,14 +54,26 @@ passport.use(new SteamStrategy({
 ));
 
 app.get('/', function(req, res) {
-	res.sendFile(__dirname + '/public/index.html');
+	res.render('index', {
+		displayName : null,
+		id : null,
+		photo_s : null,
+		photo_m : null,
+		photo_l : null
+	});
 });
 
 app.get('/room/:roomId',
 	ensureAuthenticated,
 	function(req, res) {
 		console.log("Room ID is : " + req.params['roomId']);
-		res.sendFile(__dirname + '/public/room.html');
+		res.render('room', { 
+			displayName : req.user.displayName,
+			id : req.user.id,
+			photo_s : req.user.photos[0].value,
+			photo_m : req.user.photos[1].value,
+			photo_l : req.user.photos[2].value
+		});
 	}
 );
 
