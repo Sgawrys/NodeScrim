@@ -1,9 +1,11 @@
 # NodeScrim
-=====================
 
 A project that allows for multi-user rooms with chat, authentication via Steam API, and server setup to host a scrim between
 two opposing teams in Counter-Strike: Global Offensive. This is still a work in progress and large portions of the code can
 and will be changed. I'm using this as a learning experience for the NodeJS environment.
+
+The goal is to allow for captain selection of both respective teams, pick/ban phase for maps and available servers, followed by
+automated server setup with selected config files.
 
 ## Contributing
 ---------------------
@@ -43,8 +45,13 @@ npm start
 ------------------------------
 
 [NodeJS](https://nodejs.org/)
+
 [Socket.io](http://socket.io/)
+
 [Express](http://expressjs.com/)
+
 [Passport](https://github.com/jaredhanson/passport)
+
 [Passport-steam](https://github.com/liamcurry/passport-steam)
+
 [EJS Templating](http://www.embeddedjs.com/)
