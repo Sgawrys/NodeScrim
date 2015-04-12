@@ -55,3 +55,8 @@ npm start
 [Passport-steam](https://github.com/liamcurry/passport-steam)
 
 [EJS Templating](http://www.embeddedjs.com/)
+
+## License
+--------------------------------
+
+MIT License
