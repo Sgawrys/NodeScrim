@@ -1,0 +1,35 @@
+body {
+	padding:50px;
+}
+
+ul {
+	list-style-type: none;
+}
+
+ul li img:hover {
+	border-style: solid;
+	border-color: red;
+	border-right-width: 1px;
+	border-left-width: 1px;
+}
+
+.banned {
+	opacity: 0.5;
+}
+
+#chatbox {
+	border-style: solid;
+	border-width: 2px;
+	border-color: #F5F5F5;
+	border-radius: 5px;
+	padding:5px;
+}
+
+#chat {
+	background-color:#FAFAFA;
+}
+
+#error {
+	display: none;
+	background-color:red;
+}
