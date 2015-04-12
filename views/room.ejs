@@ -38,6 +38,17 @@
 				});
 			});
 
+			chat.on('timer', function(data) {
+				$("#timer").html(data.time);
+				timerInterval = setInterval(function() {
+					if($("#timer").html() > 0) {
+						$("#timer").html($("#timer").html() - 1);
+					} else {
+						clearInterval(timerInterval);
+					}
+				}, 1000);
+			});
+
 			$(document).ready(function() {
 
 				$("li img").click(function() {
@@ -71,6 +82,7 @@
 							<label>Message:</label>
 							<input type="text" id="textinput" />
 							<input type="submit" id="submit" value="Submit" />
+							Time Left:<span id="timer"></span>
 						</div>
 					</div>
 				</div>

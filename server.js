@@ -9,6 +9,7 @@ var passport = require('passport'),
 
 var MAX_CLIENT_CONN = 2;
 var ROOM_ID_LENGTH = 5;
+var SELECTION_TIME_LIMIT = 20;
 
 //Associative array containing a room ID and room count of clients connected.
 var rooms = []
@@ -142,6 +143,11 @@ chat.on('connection', function(socket) {
 				rooms[data.url] += 1;
 				console.log("Joining Room : " + data.url);
 				socket.join(data.url);
+				if(rooms[data.url] == MAX_CLIENT_CONN) {
+					console.log("Initializing captain selection and pick/ban phase");
+					//Start timer for choice selection here.
+					chat.to(data.url).emit('timer', { time : SELECTION_TIME_LIMIT });
+				}
 			} else { 
 				console.log("Number of maximum clients reached.");
 				socket.emit('errorCode', {'statusCode' : 0});
