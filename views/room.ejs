@@ -31,10 +31,10 @@
 			});
 
 			chat.on('updateClients', function(data) {
-
+				console.log(data);
 				$("#clientPool").empty();
 				$.each(data.clients, function(k, v) {
-					$("#clientPool").append("<li>" + v + "</li>");
+					$("#clientPool").append("<li><img src='"+v.photo_small+"'/>" + v.displayName + "</li>");
 				});
 			});
 
@@ -90,6 +90,7 @@
 			
 			<div class="row">
 				<div>
+					<label>Current Users</label>
 					<ul id="clientPool">
 
 					</ul>

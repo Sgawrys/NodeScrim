@@ -13,7 +13,7 @@ var SELECTION_TIME_LIMIT = 20;
 
 //Associative array containing a room ID and room count of clients connected.
 var rooms = []
-//Associative array containing a room ID mapped to an array of client names.
+//Associative array containing a room ID mapped to an array of client objects.
 var users = []
 
 //Namespace for multi-room chat
@@ -68,6 +68,20 @@ app.get('/room/:roomId',
 	ensureAuthenticated,
 	function(req, res) {
 		console.log("Room ID is : " + req.params['roomId']);
+
+		var player = new Client(req.user.displayName,
+								req.user.id,
+								req.user.photos[0].value,
+								req.user.photos[1].value,
+								req.user.photos[2].value);
+		player.joinRoom(req.params['roomId']);
+
+		if(users[req.params['roomId']] === undefined) {
+			users[req.params['roomId']] = [];
+		}
+
+		users[req.params['roomId']].push(player);
+
 		res.render('room', { 
 			displayName : req.user.displayName,
 			id : req.user.id,
@@ -148,6 +162,9 @@ chat.on('connection', function(socket) {
 					//Start timer for choice selection here.
 					chat.to(data.url).emit('timer', { time : SELECTION_TIME_LIMIT });
 				}
+
+				//Send update to all players that a new user has joined the room
+				chat.to(data.url).emit('updateClients', { clients : users[data.url] });
 			} else { 
 				console.log("Number of maximum clients reached.");
 				socket.emit('errorCode', {'statusCode' : 0});
@@ -159,15 +176,6 @@ chat.on('connection', function(socket) {
 	socket.on('message', function(data) {
 		chat.to(socket.rooms[1]).emit('response', data);
 	});
-
-	socket.on('register', function(data) {
-		if(users[socket.rooms[1]] === undefined) {
-			users[socket.rooms[1]] = [];
-		}
-		users[socket.rooms[1]].push(data.name);
-
-		chat.to(socket.rooms[1]).emit('updateClients', { clients : users[socket.rooms[1]] });
-	})
 });
 
 server.listen(8080, function() {
@@ -178,4 +186,29 @@ server.listen(8080, function() {
 function ensureAuthenticated(req, res, next) {
 	if(req.isAuthenticated()) { return next(); }
 	res.redirect('/');
+}
+
+//Helper class defining a client along with steam information about that client.
+var Client = function(displayName, id, photo_small, photo_med, photo_large) {
+	this.displayName = displayName;
+	this.id = id;
+	this.photo_small = photo_small;
+	this.photo_med = photo_med;
+	this.photo_large = photo_large;
+}
+
+Client.prototype.joinRoom = function(roomId) {
+	this.roomId = roomId;
+}
+
+Client.prototype.getRoom = function() { 
+	return this.roomId;
+}
+
+Client.prototype.setSocket = function(socket) {
+	this.socket = socket;
+}
+
+Client.prototype.getSocket = function() {
+	return this.socket;
 }
