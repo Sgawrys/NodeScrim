@@ -45,14 +45,14 @@ npm start
 ## Credits
 ------------------------------
 
-*[NodeJS](https://nodejs.org/)
-*[Socket.io](http://socket.io/)
-*[Express](http://expressjs.com/)
-*[Passport](https://github.com/jaredhanson/passport)
-*[Passport-steam](https://github.com/liamcurry/passport-steam)
-*[EJS Templating](http://www.embeddedjs.com/)
-*[Digital Ocean API](https://developers.digitalocean.com/)
-*[Digital Ocean Wrapper](https://github.com/matt-major/do-wrapper)
+*	[NodeJS](https://nodejs.org/)
+*	[Socket.io](http://socket.io/)
+*	[Express](http://expressjs.com/)
+*	[Passport](https://github.com/jaredhanson/passport)
+*	[Passport-steam](https://github.com/liamcurry/passport-steam)
+*	[EJS Templating](http://www.embeddedjs.com/)
+*	[Digital Ocean API](https://developers.digitalocean.com/)
+*	[Digital Ocean Wrapper](https://github.com/matt-major/do-wrapper)
 
 ## License
 --------------------------------
