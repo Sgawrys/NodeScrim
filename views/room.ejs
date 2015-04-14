@@ -34,7 +34,7 @@
 				console.log(data);
 				$("#clientPool").empty();
 				$.each(data.clients, function(k, v) {
-					$("#clientPool").append("<li><img src='"+v.photo_small+"'/>" + v.displayName + "</li>");
+					$("#clientPool").append("<li id='user_"+v.displayName+"'><img src='"+v.photo_small+"'/>" + v.displayName + "</li>");
 				});
 			});
 
@@ -47,6 +47,11 @@
 						clearInterval(timerInterval);
 					}
 				}, 1000);
+			});
+
+			chat.on('captainSelect', function(data) {
+				if(userName == data.client.displayName) {
+				}
 			});
 
 			$(document).ready(function() {
@@ -106,6 +111,7 @@
 				</div>
 			</div>
 			<div>
+				<label>Map Pool</label>
 				<ul id="mapPool">
 					<li><img src="../images/dust2.png" /></li>
 					<li><img src="../images/mirage.png" /></li>

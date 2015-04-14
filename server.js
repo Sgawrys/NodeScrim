@@ -4,12 +4,16 @@ var server = require('http').Server(app);
 var io = require('socket.io')(server);
 var config = require('./config');
 var session = require('express-session');
+var oceanWrapper = require('do-wrapper');
 var passport = require('passport'),
 	SteamStrategy = require('passport-steam').Strategy;
 
 var MAX_CLIENT_CONN = 2;
 var ROOM_ID_LENGTH = 5;
 var SELECTION_TIME_LIMIT = 20;
+
+//Constructor for making Digital Ocean requests.
+var digitalOcean = new oceanWrapper(config.digitalOceanAPIKey, config.digitalOceanPerPage);
 
 //Associative array containing a room ID and room count of clients connected.
 var rooms = []
@@ -120,6 +124,23 @@ app.post('/room', function(req, res) {
 	res.json({roomId : newRoomID});
 });
 
+//Generate a droplet with CSGO server snapshot
+app.post('/server/create',
+	function(req, res) {
+		digitalOcean.dropletsCreate(config.dropletConfig, dropletCreatedCallback);
+
+		res.json({created : true});
+	}
+);
+
+app.post('/server/destroy',
+	function(req, res) {
+		digitalOcean.dropletsDelete(req.data.id, dropletDestroyedCallback);
+
+		res.json({destroyed : true});
+	}
+);
+
 //Make the authentication call to steam.
 app.get('/auth/steam',
 	passport.authenticate('steam'),
@@ -157,10 +178,16 @@ chat.on('connection', function(socket) {
 				rooms[data.url] += 1;
 				console.log("Joining Room : " + data.url);
 				socket.join(data.url);
+
 				if(rooms[data.url] == MAX_CLIENT_CONN) {
 					console.log("Initializing captain selection and pick/ban phase");
 					//Start timer for choice selection here.
 					chat.to(data.url).emit('timer', { time : SELECTION_TIME_LIMIT });
+
+					//Pick a random captain that will ban maps.
+					var captain = clientCaptainSelect(users[data.url]);
+
+					chat.to(data.url).emit('captainSelect', { 'client' : captain });
 				}
 
 				//Send update to all players that a new user has joined the room
@@ -211,4 +238,51 @@ Client.prototype.setSocket = function(socket) {
 
 Client.prototype.getSocket = function() {
 	return this.socket;
+}
+
+/*
+	Representation of ongoing game, players are taken from the current room
+	once selection of servers and maps is finished. Droplet with CSGO
+	server is created and players are given a link to connect to it,
+	player IDs are verified to make sure they are the same players.
+*/
+var Game = function(server, map, players) {
+	this.server = server;
+	this.map = map;
+	this.players = players;
+}
+
+//Helper function that finds a specific client within the specified room.
+findClientByDisplayName = function(roomId, displayName) {
+	for(client in users[roomId]) {
+		if(client.displayName == displayName) {
+			return client;
+		}
+	}
+	return null;
+}
+
+//Callback function for when a droplet has been created.
+dropletCreatedCallback = function(err, resp, body) {
+	if(err != null) {
+		console.log("An error has appeared.");
+		console.log(err);
+	} else {
+		console.log(body);
+	}
+}
+
+//Callback function for when a droplet has been destroyed.
+dropletDestroyedCallback = function(err, resp, body) {
+	if(err != null) {
+		console.log("An error has appeared.");
+		console.log(err);
+	} else {
+		console.log(body);
+	}
+}
+
+//Returns a randomly chosen player to lead the room.
+clientCaptainSelect = function(pool) {
+	return pool[Math.floor(Math.random() * pool.length)];
 }

@@ -33,3 +33,7 @@ ul li img:hover {
 	display: none;
 	background-color:red;
 }
+
+.captain {
+	background-color: #FF6961;
+}

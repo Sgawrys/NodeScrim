@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/Sgawrys/NodeScrim",
   "dependencies": {
+    "do-wrapper": "^1.1.2",
     "express": "^4.12.3",
     "express-session": "^1.11.1",
     "jade": "^1.9.2",

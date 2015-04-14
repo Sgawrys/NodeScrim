@@ -29,6 +29,7 @@ Create a `config.js` file in the root of the project with contents similar to:
 var config = {}
 
 config.steamAPIKey = '';
+config.digitalOceanAPIKey = '';
 config.sessionSecret = '';
 
 module.exports = config;
@@ -44,17 +45,14 @@ npm start
 ## Credits
 ------------------------------
 
-[NodeJS](https://nodejs.org/)
-
-[Socket.io](http://socket.io/)
-
-[Express](http://expressjs.com/)
-
-[Passport](https://github.com/jaredhanson/passport)
-
-[Passport-steam](https://github.com/liamcurry/passport-steam)
-
-[EJS Templating](http://www.embeddedjs.com/)
+*[NodeJS](https://nodejs.org/)
+*[Socket.io](http://socket.io/)
+*[Express](http://expressjs.com/)
+*[Passport](https://github.com/jaredhanson/passport)
+*[Passport-steam](https://github.com/liamcurry/passport-steam)
+*[EJS Templating](http://www.embeddedjs.com/)
+*[Digital Ocean API](https://developers.digitalocean.com/)
+*[Digital Ocean Wrapper](https://github.com/matt-major/do-wrapper)
 
 ## License
 --------------------------------
