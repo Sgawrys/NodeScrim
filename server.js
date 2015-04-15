@@ -5,6 +5,7 @@ var io = require('socket.io')(server);
 var config = require('./config');
 var session = require('express-session');
 var oceanWrapper = require('do-wrapper');
+var rcon = require('srcds-rcon');
 var passport = require('passport'),
 	SteamStrategy = require('passport-steam').Strategy;
 
@@ -74,10 +75,11 @@ app.get('/room/:roomId',
 		console.log("Room ID is : " + req.params['roomId']);
 
 		var player = new Client(req.user.displayName,
-								req.user.id,
-								req.user.photos[0].value,
-								req.user.photos[1].value,
-								req.user.photos[2].value);
+			req.user.id,
+			req.user.photos[0].value,
+			req.user.photos[1].value,
+			req.user.photos[2].value);
+
 		player.joinRoom(req.params['roomId']);
 
 		if(users[req.params['roomId']] === undefined) {
@@ -127,7 +129,7 @@ app.post('/room', function(req, res) {
 //Generate a droplet with CSGO server snapshot
 app.post('/server/create',
 	function(req, res) {
-		digitalOcean.dropletsCreate(config.dropletConfig, dropletCreatedCallback);
+		digitalOcean.dropletsCreate(config.dropletConfig, dropletCreatedCallback(req.data.map));
 
 		res.json({created : true});
 	}
@@ -213,7 +215,7 @@ server.listen(8080, function() {
 function ensureAuthenticated(req, res, next) {
 	if(req.isAuthenticated()) { return next(); }
 	res.redirect('/');
-}
+};
 
 //Helper class defining a client along with steam information about that client.
 var Client = function(displayName, id, photo_small, photo_med, photo_large) {
@@ -222,23 +224,23 @@ var Client = function(displayName, id, photo_small, photo_med, photo_large) {
 	this.photo_small = photo_small;
 	this.photo_med = photo_med;
 	this.photo_large = photo_large;
-}
+};
 
 Client.prototype.joinRoom = function(roomId) {
 	this.roomId = roomId;
-}
+};
 
 Client.prototype.getRoom = function() { 
 	return this.roomId;
-}
+};
 
 Client.prototype.setSocket = function(socket) {
 	this.socket = socket;
-}
+};
 
 Client.prototype.getSocket = function() {
 	return this.socket;
-}
+};
 
 /*
 	Representation of ongoing game, players are taken from the current room
@@ -250,7 +252,7 @@ var Game = function(server, map, players) {
 	this.server = server;
 	this.map = map;
 	this.players = players;
-}
+};
 
 //Helper function that finds a specific client within the specified room.
 findClientByDisplayName = function(roomId, displayName) {
@@ -260,17 +262,37 @@ findClientByDisplayName = function(roomId, displayName) {
 		}
 	}
 	return null;
-}
+};
 
 //Callback function for when a droplet has been created.
-dropletCreatedCallback = function(err, resp, body) {
-	if(err != null) {
-		console.log("An error has appeared.");
-		console.log(err);
-	} else {
-		console.log(body);
-	}
-}
+dropletCreatedCallback = function(selectedMap) {
+	return function(err, resp, body) {
+		if(err != null) {
+			console.log("An error has appeared.");
+			console.log(err);
+		} else {
+			console.log("Server created, remote connection initiated to set map to : " + selectedMap);
+			digitalOcean.dropletsGetById(body.droplet.id, initiateRemoteConnection(selectedMap));
+		}
+	};
+};
+
+//Callback function to setup the remote server according to settings selected in the room.
+initiateRemoteConnection = function(selectedMap) {
+	return function(err, resp, body) {
+		if(err != null) {
+			console.log(err);
+		} else {
+			var conn = new Rcon(body.droplet.networks.v4.ip_address + '27015', config.rconPassword);
+			console.log("Connecting to server : " + body.droplet.networks.v4.ip_address);
+			conn.connect(function() {
+				conn.changelevel(selectedMap, function(err, res) {
+					console.log("Changed map to : " + selectedMap);
+				});
+			});
+		}
+	};
+};
 
 //Callback function for when a droplet has been destroyed.
 dropletDestroyedCallback = function(err, resp, body) {
