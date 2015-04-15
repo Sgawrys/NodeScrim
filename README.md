@@ -28,9 +28,17 @@ Create a `config.js` file in the root of the project with contents similar to:
 ```javascript
 var config = {}
 
+/*Steam and Express configuration*/
 config.steamAPIKey = '';
-config.digitalOceanAPIKey = '';
 config.sessionSecret = '';
+
+/*RCON Information*/
+config.rconPassword = '';
+
+/*Digital Ocean Configuration*/
+config.digitalOceanAPIKey = '';
+config.digitalOceanPerPage = RESULTS_PER_PAGE;
+config.snapshotID = 0;
 
 module.exports = config;
 ```
@@ -53,6 +61,7 @@ npm start
 *	[EJS Templating](http://www.embeddedjs.com/)
 *	[Digital Ocean API](https://developers.digitalocean.com/)
 *	[Digital Ocean Wrapper](https://github.com/matt-major/do-wrapper)
+*	[Node-Srcds-Rcon](https://github.com/randunel/node-srcds-rcon)
 
 ## License
 --------------------------------

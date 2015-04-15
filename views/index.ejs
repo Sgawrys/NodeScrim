@@ -21,11 +21,20 @@
 					console.log(data);
 				}
 			});
+
+			$("#create").click(function() {
+				$.ajax({
+					url: '/server/create',
+					method: 'POST',
+					data : { map : "de_nuke" }
+				});
+			});
 		});
 	</script>
   </head>
   <body>
   	<div class="row">
+  		<div id="create" class="button">Create Server</div>
 		<div>
 			<%if (displayName != null) { %>
 				<h1>Currently signed in as : <%= displayName %> </h1>

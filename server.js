@@ -1,4 +1,5 @@
 var express = require('express');
+var bodyParser = require('body-parser');
 var app = express();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
@@ -27,6 +28,8 @@ var chat = io.of('/chat');
 //Use Jade templating engine, Passport, and Express Sessions
 app.set('view engine', 'ejs')
 app.use(express.static(__dirname+"/assets/"));
+app.use(bodyParser.json({strict:false}));
+app.use(bodyParser.urlencoded({extended: true}));
 app.use(session({
 	secret : config.sessionSecret,
 	resave: false,
@@ -129,7 +132,11 @@ app.post('/room', function(req, res) {
 //Generate a droplet with CSGO server snapshot
 app.post('/server/create',
 	function(req, res) {
-		digitalOcean.dropletsCreate(config.dropletConfig, dropletCreatedCallback(req.data.map));
+		//console.log(req.body.map);
+		//config.userDataSet(req.body.map);
+		console.log(config.dropletConfig);
+
+		digitalOcean.dropletsCreate(config.dropletConfig, dropletCreatedCallback(req.body.map));
 
 		res.json({created : true});
 	}
@@ -272,7 +279,18 @@ dropletCreatedCallback = function(selectedMap) {
 			console.log(err);
 		} else {
 			console.log("Server created, remote connection initiated to set map to : " + selectedMap);
-			digitalOcean.dropletsGetById(body.droplet.id, initiateRemoteConnection(selectedMap));
+
+			//Set interval to status check if server is up, once server is up try and RCON in to set the map.
+			var statusCheck = setInterval(function() {
+				console.log("Initiating status check.");
+
+				var status = digitalOcean.dropletsGetById(body.droplet.id, initiateRemoteConnection(selectedMap));
+
+				console.log(status + " is the status.");
+				if(status == "active") {
+					clearInterval(statusCheck);
+				}
+			}, config.rconRetry);
 		}
 	};
 };
@@ -282,14 +300,26 @@ initiateRemoteConnection = function(selectedMap) {
 	return function(err, resp, body) {
 		if(err != null) {
 			console.log(err);
+
+			return body.droplet.status;
 		} else {
-			var conn = new Rcon(body.droplet.networks.v4.ip_address + '27015', config.rconPassword);
-			console.log("Connecting to server : " + body.droplet.networks.v4.ip_address);
-			conn.connect(function() {
-				conn.changelevel(selectedMap, function(err, res) {
-					console.log("Changed map to : " + selectedMap);
+
+			if(body.droplet.status == "active") {
+				console.log(body);
+
+				//Trying to fix rcon but of undefined host...look into this further because broken.
+				var hostString = String(body.droplet.networks.v4[0].ip_address + ":27015");
+
+				var conn = new rcon(hostString, config.rconPassword);
+				console.log("Connecting to server : " + body.droplet.networks.v4[0].ip_address + ":27015");
+				conn.connect(function() {
+					conn.changelevel(selectedMap, function(err, res) {
+						console.log("Changed map to : " + selectedMap);
+					});
 				});
-			});
+			}
+
+			return body.droplet.status;
 		}
 	};
 };
