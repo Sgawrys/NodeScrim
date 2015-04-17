@@ -29,12 +29,20 @@
 					data : { map : "de_nuke" }
 				});
 			});
+			$("#rcon").click(function() {
+				$.ajax({
+					url: '/server/rcon',
+					method: 'POST',
+					data : { address : '104.236.58.86:27015' }
+				});
+			});
 		});
 	</script>
   </head>
   <body>
   	<div class="row">
   		<div id="create" class="button">Create Server</div>
+  		<div id="rcon" class="button">Rcon!</div>
 		<div>
 			<%if (displayName != null) { %>
 				<h1>Currently signed in as : <%= displayName %> </h1>

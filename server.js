@@ -142,6 +142,26 @@ app.post('/server/create',
 	}
 );
 
+//Initiate a test remote connection with CSGO server.
+app.post('/server/rcon',
+	function(req, res) {
+		console.log("Initiating test rcon connection.");
+		selectedMap = "de_nuke";
+		var conn = new rcon({
+			address: req.body.address,
+			password: config.rconPassword,
+			initCvars: false
+		});
+		console.log("Connecting to server : " + req.body.address);
+		console.log(conn.host + " " + conn.password + " " + conn.port);
+		conn.connect(function() {
+			conn.runCommand('changelevel ' + selectedMap, function(err, res) {
+				console.log("Changed map to : " + selectedMap);
+			});
+		});
+	}
+);
+
 app.post('/server/destroy',
 	function(req, res) {
 		digitalOcean.dropletsDelete(req.data.id, dropletDestroyedCallback);
@@ -306,14 +326,14 @@ initiateRemoteConnection = function(selectedMap) {
 
 			if(body.droplet.status == "active") {
 				console.log(body);
-
-				//Trying to fix rcon but of undefined host...look into this further because broken.
-				var hostString = String(body.droplet.networks.v4[0].ip_address + ":27015");
-
-				var conn = new rcon(hostString, config.rconPassword);
+				var conn = new rcon({
+					address: body.droplet.networks.v4[0].ip_address+':27015',
+					password: config.rconPassword,
+					initCvars: false
+				});
 				console.log("Connecting to server : " + body.droplet.networks.v4[0].ip_address + ":27015");
 				conn.connect(function() {
-					conn.changelevel(selectedMap, function(err, res) {
+					conn.runCommand('changelevel ' + selectedMap, function(err, res) {
 						console.log("Changed map to : " + selectedMap);
 					});
 				});
