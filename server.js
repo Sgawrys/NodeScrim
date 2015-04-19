@@ -7,6 +7,8 @@ var config = require('./config');
 var session = require('express-session');
 var oceanWrapper = require('do-wrapper');
 var rcon = require('srcds-rcon');
+var ssh = require('sequest');
+var fs = require('fs');
 var passport = require('passport'),
 	SteamStrategy = require('passport-steam').Strategy;
 
@@ -324,21 +326,20 @@ initiateRemoteConnection = function(selectedMap) {
 			return body.droplet.status;
 		} else {
 
+			/*
+			    Replacing RCON approach to changing starting map to SSH'ing into server for original setup,
+			    then being able to RCON the server for further instructions.
+			*/
 			if(body.droplet.status == "active") {
-				console.log(body);
-				var conn = new rcon({
-					address: body.droplet.networks.v4[0].ip_address+':27015',
-					password: config.rconPassword,
-					initCvars: false
-				});
-				console.log("Connecting to server : " + body.droplet.networks.v4[0].ip_address + ":27015");
-				conn.connect(function() {
-					conn.runCommand('changelevel ' + selectedMap, function(err, res) {
-						console.log("Changed map to : " + selectedMap);
-					});
+				ssh('root@'+body.droplet.networks.v4[0].ip_address, {
+					command: '/root/csgoserver/srcds_run -game csgo -console -tickrate 128 +ip '+body.droplet.networks.v4[0].ip_address+' -usercon +game_type 0 +game_mode 1 +mapgroup mg_active +map de_nuke',
+					privateKey: config.sshKey
+				}, function(err, stdout) {
+					if(err) 
+						console.log(err);
+					console.log(stdout);
 				});
 			}
-
 			return body.droplet.status;
 		}
 	};
