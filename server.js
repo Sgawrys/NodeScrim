@@ -306,19 +306,15 @@ dropletCreatedCallback = function(selectedMap) {
 			var statusCheck = setInterval(function() {
 				console.log("Initiating status check.");
 
-				var status = digitalOcean.dropletsGetById(body.droplet.id, initiateRemoteConnection(selectedMap));
-
-				console.log(status + " is the status.");
-				if(status == "active") {
-					clearInterval(statusCheck);
-				}
+				digitalOcean.dropletsGetById(body.droplet.id, initiateRemoteConnection(selectedMap, statusCheck));
+				
 			}, config.rconRetry);
 		}
 	};
 };
 
 //Callback function to setup the remote server according to settings selected in the room.
-initiateRemoteConnection = function(selectedMap) {
+initiateRemoteConnection = function(selectedMap, statusCheck) {
 	return function(err, resp, body) {
 		if(err != null) {
 			console.log(err);
@@ -331,6 +327,8 @@ initiateRemoteConnection = function(selectedMap) {
 			    then being able to RCON the server for further instructions.
 			*/
 			if(body.droplet.status == "active") {
+				clearInterval(statusCheck);
+
 				ssh('root@'+body.droplet.networks.v4[0].ip_address, {
 					command: '/root/csgoserver/srcds_run -game csgo -console -tickrate 128 +ip '+body.droplet.networks.v4[0].ip_address+' -usercon +game_type 0 +game_mode 1 +mapgroup mg_active +map de_nuke',
 					privateKey: config.sshKey
