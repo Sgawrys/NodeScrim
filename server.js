@@ -261,6 +261,10 @@ Client.prototype.getRoom = function() {
 	return this.roomId;
 };
 
+Client.prototype.joinTeam = function(team) {
+	this.team = team;
+}
+
 Client.prototype.setSocket = function(socket) {
 	this.socket = socket;
 };
