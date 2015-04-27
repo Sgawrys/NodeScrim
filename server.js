@@ -134,8 +134,6 @@ app.post('/room', function(req, res) {
 //Generate a droplet with CSGO server snapshot
 app.post('/server/create',
 	function(req, res) {
-		//console.log(req.body.map);
-		//config.userDataSet(req.body.map);
 		console.log(config.dropletConfig);
 
 		digitalOcean.dropletsCreate(config.dropletConfig, dropletCreatedCallback(req.body.map));
@@ -148,7 +146,7 @@ app.post('/server/create',
 app.post('/server/rcon',
 	function(req, res) {
 		console.log("Initiating test rcon connection.");
-		selectedMap = "de_nuke";
+		selectedMap = req.body.map;
 		var conn = new rcon({
 			address: req.body.address,
 			password: config.rconPassword,
@@ -327,16 +325,24 @@ initiateRemoteConnection = function(selectedMap, statusCheck) {
 			    then being able to RCON the server for further instructions.
 			*/
 			if(body.droplet.status == "active") {
+
+				var sshCommand = config.updateSSHCommand(body.droplet.networks.v4[0].ip_address, selectedMap);
+				setTimeout(function() {
+					ssh('root@'+body.droplet.networks.v4[0].ip_address, {
+						command: sshCommand,
+						privateKey: config.sshKey,
+						readyTimeout: 99999
+					}, function(err, stdout) {
+						if(err) {
+							console.log(err);
+						} else {
+							console.log(stdout);
+						}
+					});
+				}, config.sshTimeout);
+
 				clearInterval(statusCheck);
 
-				ssh('root@'+body.droplet.networks.v4[0].ip_address, {
-					command: '/root/csgoserver/srcds_run -game csgo -console -tickrate 128 +ip '+body.droplet.networks.v4[0].ip_address+' -usercon +game_type 0 +game_mode 1 +mapgroup mg_active +map de_nuke',
-					privateKey: config.sshKey
-				}, function(err, stdout) {
-					if(err) 
-						console.log(err);
-					console.log(stdout);
-				});
 			}
 			return body.droplet.status;
 		}
