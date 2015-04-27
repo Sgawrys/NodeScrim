@@ -40,6 +40,20 @@ config.digitalOceanAPIKey = '';
 config.digitalOceanPerPage = RESULTS_PER_PAGE;
 config.snapshotID = 0;
 
+/*Droplet Configuration*/
+config.dropletConfig = {},
+config.dropletConfig.name = "";
+config.dropletConfig.region = "";
+config.dropletConfig.size = "";
+config.dropletConfig.image = config.snapshotID;
+config.dropletConfig.ssh_keys = [];
+config.dropletConfig.backups = false;
+config.dropletConfig.ipv6 = true;
+config.dropletConfig.user_data = null;
+config.dropletConfig.private_networking = null;
+
+config.sshTimeout = 60000;
+
 module.exports = config;
 ```
 
