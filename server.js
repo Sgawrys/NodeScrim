@@ -240,11 +240,13 @@ chat.on('connection', function(socket) {
 	socket.on('mapBan', function(data) {
 		console.log("Banning map : " + data.map);
 		games[data.url].removeMap(data.map);
+		chat.to(data.url).emit('mapBan', { map : data.map });
 	});
 
 	socket.on('regionSelect', function(data) {
 		console.log("Selecting region : " + data.region);
 		games[data.url].setRegion(data.region);
+		chat.to(data.url).emit('regionSelect', { region : data.region});
 	})
 
 	//Send message to everyone within the same room as the user.
@@ -397,7 +399,7 @@ initiateRemoteConnection = function(selectedMap, statusCheck, roomId) {
 				clearInterval(statusCheck);
 
 				//Send a READY signal to the requested room
-				chat.to(roomId).emit("serverReady", { url : "steam://connect/"+body.droplet.networks.v4[0].ip_address+":27015/nycst0nyv3nt" });
+				chat.to(roomId).emit("serverReady", { url : "steam://connect/"+body.droplet.networks.v4[0].ip_address+":27015/"+config.serverPassword });
 			}
 			return body.droplet.status;
 		}

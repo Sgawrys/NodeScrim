@@ -69,6 +69,17 @@
 				console.log("Server ready. Connect here: " + data.url);
 			});
 
+			//Receive a banned map decision from team captain
+			chat.on('mapBan' , function(data) {
+				$("#mapPool img[data-map-name="+data.map+"]").addClass("banned");
+			});
+
+			//Receive a picked region decision from team captain
+			chat.on('regionSelect', function(data) {
+				$("#serverPool").empty();
+				$("#serverPool").append("<li>"+data.region+"</li>");
+			});
+
 			$(document).ready(function() {
 
 				$("#mapPool img").click(function() {
@@ -80,10 +91,12 @@
 
 				$("#serverPool li").click(function() {
 					if(permission) {
-						$("#serverPool li").prop('disabled', true);
-						$(this).prop('disabled', false);
+						var dataRegion = $(this).attr("data-region");
 
-						chat.emit('regionSelect', { region : $(this).attr("data-region"), url : roomId });
+						chat.emit('regionSelect', { region : dataRegion, url : roomId });
+
+						$("#serverPool").empty();
+						$("#serverPool").append("<li>"+dataRegion+"</li>");
 					}
 				})
 
