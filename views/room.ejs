@@ -15,6 +15,7 @@
 			var permission = false;
 			var userName = "<%= displayName %>";
 			var roomIdLength = 5;
+			var roomId = document.URL.substring(document.URL.length-roomIdLength);
 
 			chat.emit('joinRoom', { url : document.URL.substring(document.URL.length-roomIdLength)} );
 
@@ -50,17 +51,41 @@
 			});
 
 			chat.on('captainSelect', function(data) {
-				if(userName == data.client.displayName) {
-				}
+				$("#clientPool").each( function(k,v) {
+					console.log(k + " " + v);
+					if(userName == data.client.displayName) {
+						$(v).css('background-color', 'red');
+						permission = true;
+					}
+				});
+			});
+
+			//Create a disabled connect button and enable once Game object receives an active indication.
+			chat.on('serverStartup', function(data) {
+				console.log("Server starting on " + data.region + " for map " + data.map);
+			});
+
+			chat.on('serverReady', function(data) {
+				console.log("Server ready. Connect here: " + data.url);
 			});
 
 			$(document).ready(function() {
 
-				$("li img").click(function() {
+				$("#mapPool img").click(function() {
 					if(permission) {
 						$(this).addClass("banned");
+						chat.emit('mapBan', { map : $(this).attr("data-map-name"), url : roomId });
 					}
 				});
+
+				$("#serverPool li").click(function() {
+					if(permission) {
+						$("#serverPool li").prop('disabled', true);
+						$(this).prop('disabled', false);
+
+						chat.emit('regionSelect', { region : $(this).attr("data-region"), url : roomId });
+					}
+				})
 
 				$("#submit").click(function() {
 					chat.emit('message', {
@@ -103,10 +128,10 @@
 				<div></div>
 				<div>
 					<ul id="serverPool">
-						<li><div class="button">New York</div></li>
-						<li><div class="button">San Francisco</div></li>
-						<li><div class="button">Amsterdam</div></li>
-						<li><div class="button">London</div></li>
+						<li data-region="NY"><div class="button">New York</div></li>
+						<li data-region="SF"><div class="button">San Francisco</div></li>
+						<li data-region="AMS"><div class="button">Amsterdam</div></li>
+						<li data-region="LDN"><div class="button">London</div></li>
 					</ul>
 
 				</div>
@@ -114,13 +139,13 @@
 			<div>
 				<label>Map Pool</label>
 				<ul id="mapPool">
-					<li><img src="../images/dust2.png" /></li>
-					<li><img src="../images/mirage.png" /></li>
-					<li><img src="../images/cache.png" /></li>
-					<li><img src="../images/cbble.png" /></li>
-					<li><img src="../images/overpass.png" /></li>
-					<li><img src="../images/train.png" /></li>
-					<li><img src="../images/inferno.png" /></li>
+					<li><img src="../images/dust2.png" data-map-name="de_dust2" /></li>
+					<li><img src="../images/mirage.png" data-map-name="de_mirage" /></li>
+					<li><img src="../images/cache.png" data-map-name="de_cache" /></li>
+					<li><img src="../images/cbble.png" data-map-name="de_cbble" /></li>
+					<li><img src="../images/overpass.png" data-map-name="de_overpass" /></li>
+					<li><img src="../images/train.png" data-map-name="de_train" /></li>
+					<li><img src="../images/inferno.png" data-map-name="de_inferno" /></li>
 				</ul>
 			</div>
 		</div>

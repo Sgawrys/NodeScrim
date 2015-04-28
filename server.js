@@ -20,9 +20,11 @@ var SELECTION_TIME_LIMIT = 20;
 var digitalOcean = new oceanWrapper(config.digitalOceanAPIKey, config.digitalOceanPerPage);
 
 //Associative array containing a room ID and room count of clients connected.
-var rooms = []
+var rooms = [];
 //Associative array containing a room ID mapped to an array of client objects.
-var users = []
+var users = [];
+//Ongoing games array
+var games = [];
 
 //Namespace for multi-room chat
 var chat = io.of('/chat');
@@ -136,7 +138,7 @@ app.post('/server/create',
 	function(req, res) {
 		console.log(config.dropletConfig);
 
-		digitalOcean.dropletsCreate(config.dropletConfig, dropletCreatedCallback(req.body.map));
+		digitalOcean.dropletsCreate(config.dropletConfig, dropletCreatedCallback(req.body.map, 0));
 
 		res.json({created : true});
 	}
@@ -216,17 +218,34 @@ chat.on('connection', function(socket) {
 					//Pick a random captain that will ban maps.
 					var captain = clientCaptainSelect(users[data.url]);
 
-					chat.to(data.url).emit('captainSelect', { 'client' : captain });
-				}
+					//Update the client list before selecting the captain.
+					chat.to(data.url).emit('updateClients', { clients : users[data.url] });
 
-				//Send update to all players that a new user has joined the room
-				chat.to(data.url).emit('updateClients', { clients : users[data.url] });
+					chat.to(data.url).emit('captainSelect', { 'client' : captain });
+
+					//Create a new game instance
+					games[data.url] = new Game(data.url, users[data.url]);
+
+				} else {
+					//Send update to all players that a new user has joined the room
+					chat.to(data.url).emit('updateClients', { clients : users[data.url] });
+				}
 			} else { 
 				console.log("Number of maximum clients reached.");
 				socket.emit('errorCode', {'statusCode' : 0});
 			}
 		}
 	});
+
+	socket.on('mapBan', function(data) {
+		console.log("Banning map : " + data.map);
+		games[data.url].removeMap(data.map);
+	});
+
+	socket.on('regionSelect', function(data) {
+		console.log("Selecting region : " + data.region);
+		games[data.url].setRegion(data.region);
+	})
 
 	//Send message to everyone within the same room as the user.
 	socket.on('message', function(data) {
@@ -279,11 +298,41 @@ Client.prototype.getSocket = function() {
 	server is created and players are given a link to connect to it,
 	player IDs are verified to make sure they are the same players.
 */
-var Game = function(server, map, players) {
-	this.server = server;
-	this.map = map;
+var Game = function(id, players) {
 	this.players = players;
+	this.id = id;
+	this.maps = ["de_dust2", "de_mirage", "de_cache", "de_cbble", "de_inferno", "de_overpass", "de_train"];
+	this.server = null;
 };
+
+Game.prototype.setRegion = function(server) {
+	this.server = server;
+}
+
+Game.prototype.removeMap = function(banned_map) {
+	if(this.maps.length > 1) {
+		this.maps.splice(this.maps.indexOf(banned_map), 1);
+	}
+
+	//Selected element must be the last element left in the array after ban phase.
+	if(this.maps.length == 1 && this.server !== null) {
+		this.map = this.maps[0];
+	}
+
+	this.checkStartConditions();
+}
+
+Game.prototype.checkStartConditions = function() {
+	if(this.maps.length == 1) {
+		console.log("GAME STARTING ON : " + this.map + " IN SERVER : " + this.server);
+		chat.to(this.id).emit('serverStartup', { region : this.server, map : this.map});
+		digitalOcean.dropletsCreate(config.dropletConfig, dropletCreatedCallback(this.map, this.id));
+	}
+}
+
+Game.prototype.setIp = function(server_ip) {
+	this.ip = server_ip;
+}
 
 //Helper function that finds a specific client within the specified room.
 findClientByDisplayName = function(roomId, displayName) {
@@ -296,7 +345,7 @@ findClientByDisplayName = function(roomId, displayName) {
 };
 
 //Callback function for when a droplet has been created.
-dropletCreatedCallback = function(selectedMap) {
+dropletCreatedCallback = function(selectedMap, roomId) {
 	return function(err, resp, body) {
 		if(err != null) {
 			console.log("An error has appeared.");
@@ -308,7 +357,7 @@ dropletCreatedCallback = function(selectedMap) {
 			var statusCheck = setInterval(function() {
 				console.log("Initiating status check.");
 
-				digitalOcean.dropletsGetById(body.droplet.id, initiateRemoteConnection(selectedMap, statusCheck));
+				digitalOcean.dropletsGetById(body.droplet.id, initiateRemoteConnection(selectedMap, statusCheck, roomId));
 				
 			}, config.rconRetry);
 		}
@@ -316,7 +365,7 @@ dropletCreatedCallback = function(selectedMap) {
 };
 
 //Callback function to setup the remote server according to settings selected in the room.
-initiateRemoteConnection = function(selectedMap, statusCheck) {
+initiateRemoteConnection = function(selectedMap, statusCheck, roomId) {
 	return function(err, resp, body) {
 		if(err != null) {
 			console.log(err);
@@ -347,6 +396,8 @@ initiateRemoteConnection = function(selectedMap, statusCheck) {
 
 				clearInterval(statusCheck);
 
+				//Send a READY signal to the requested room
+				chat.to(roomId).emit("serverReady", { url : "steam://connect/"+body.droplet.networks.v4[0].ip_address+":27015/nycst0nyv3nt" });
 			}
 			return body.droplet.status;
 		}
@@ -365,5 +416,5 @@ dropletDestroyedCallback = function(err, resp, body) {
 
 //Returns a randomly chosen player to lead the room.
 clientCaptainSelect = function(pool) {
-	return pool[Math.floor(Math.random() * pool.length)];
+	return pool[0];
 }
