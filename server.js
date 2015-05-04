@@ -12,6 +12,10 @@ var fs = require('fs');
 var passport = require('passport'),
 	SteamStrategy = require('passport-steam').Strategy;
 
+//Custom modules
+var client = require('./libs/client');
+var game = require('./libs/game');
+
 var MAX_CLIENT_CONN = 2;
 var ROOM_ID_LENGTH = 5;
 var SELECTION_TIME_LIMIT = 20;
@@ -21,10 +25,6 @@ var digitalOcean = new oceanWrapper(config.digitalOceanAPIKey, config.digitalOce
 
 //Associative array containing a room ID and room count of clients connected.
 var rooms = [];
-//Associative array containing a room ID mapped to an array of client objects.
-var users = [];
-//Ongoing games array
-var games = [];
 
 //Namespace for multi-room chat
 var chat = io.of('/chat');
@@ -81,19 +81,12 @@ app.get('/room/:roomId',
 	function(req, res) {
 		console.log("Room ID is : " + req.params['roomId']);
 
-		var player = new Client(req.user.displayName,
+		var player = client.createClient(req.user.displayName,
 			req.user.id,
 			req.user.photos[0].value,
 			req.user.photos[1].value,
-			req.user.photos[2].value);
-
-		player.joinRoom(req.params['roomId']);
-
-		if(users[req.params['roomId']] === undefined) {
-			users[req.params['roomId']] = [];
-		}
-
-		users[req.params['roomId']].push(player);
+			req.user.photos[2].value,
+			req.params['roomId']);
 
 		res.render('room', { 
 			displayName : req.user.displayName,
@@ -216,19 +209,19 @@ chat.on('connection', function(socket) {
 					chat.to(data.url).emit('timer', { time : SELECTION_TIME_LIMIT });
 
 					//Pick a random captain that will ban maps.
-					var captain = clientCaptainSelect(users[data.url]);
+					var captain = game.selectCaptain(client.getRoom(data.url));
 
 					//Update the client list before selecting the captain.
-					chat.to(data.url).emit('updateClients', { clients : users[data.url] });
+					chat.to(data.url).emit('updateClients', { clients : client.getRoom(data.url) });
 
 					chat.to(data.url).emit('captainSelect', { 'client' : captain });
 
 					//Create a new game instance
-					games[data.url] = new Game(data.url, users[data.url]);
+					game.createGame(data.url, client.getRoom(data.url), digitalOcean, chat);
 
 				} else {
 					//Send update to all players that a new user has joined the room
-					chat.to(data.url).emit('updateClients', { clients : users[data.url] });
+					chat.to(data.url).emit('updateClients', { clients : client.getRoom(data.url) });
 				}
 			} else { 
 				console.log("Number of maximum clients reached.");
@@ -238,14 +231,15 @@ chat.on('connection', function(socket) {
 	});
 
 	socket.on('mapBan', function(data) {
+		console.log(socket);
 		console.log("Banning map : " + data.map);
-		games[data.url].removeMap(data.map);
+		game.findGame(data.url).removeMap(data.map);
 		chat.to(data.url).emit('mapBan', { map : data.map });
 	});
 
 	socket.on('regionSelect', function(data) {
 		console.log("Selecting region : " + data.region);
-		games[data.url].setRegion(data.region);
+		game.findGame(data.url).setRegion(data.region);
 		chat.to(data.url).emit('regionSelect', { region : data.region});
 	})
 
@@ -263,87 +257,6 @@ server.listen(8080, function() {
 function ensureAuthenticated(req, res, next) {
 	if(req.isAuthenticated()) { return next(); }
 	res.redirect('/');
-};
-
-//Helper class defining a client along with steam information about that client.
-var Client = function(displayName, id, photo_small, photo_med, photo_large) {
-	this.displayName = displayName;
-	this.id = id;
-	this.photo_small = photo_small;
-	this.photo_med = photo_med;
-	this.photo_large = photo_large;
-};
-
-Client.prototype.joinRoom = function(roomId) {
-	this.roomId = roomId;
-};
-
-Client.prototype.getRoom = function() { 
-	return this.roomId;
-};
-
-Client.prototype.joinTeam = function(team) {
-	this.team = team;
-}
-
-Client.prototype.setSocket = function(socket) {
-	this.socket = socket;
-};
-
-Client.prototype.getSocket = function() {
-	return this.socket;
-};
-
-/*
-	Representation of ongoing game, players are taken from the current room
-	once selection of servers and maps is finished. Droplet with CSGO
-	server is created and players are given a link to connect to it,
-	player IDs are verified to make sure they are the same players.
-*/
-var Game = function(id, players) {
-	this.players = players;
-	this.id = id;
-	this.maps = ["de_dust2", "de_mirage", "de_cache", "de_cbble", "de_inferno", "de_overpass", "de_train"];
-	this.server = null;
-};
-
-Game.prototype.setRegion = function(server) {
-	this.server = server;
-}
-
-Game.prototype.removeMap = function(banned_map) {
-	if(this.maps.length > 1) {
-		this.maps.splice(this.maps.indexOf(banned_map), 1);
-	}
-
-	//Selected element must be the last element left in the array after ban phase.
-	if(this.maps.length == 1 && this.server !== null) {
-		this.map = this.maps[0];
-	}
-
-	this.checkStartConditions();
-}
-
-Game.prototype.checkStartConditions = function() {
-	if(this.maps.length == 1) {
-		console.log("GAME STARTING ON : " + this.map + " IN SERVER : " + this.server);
-		chat.to(this.id).emit('serverStartup', { region : this.server, map : this.map});
-		digitalOcean.dropletsCreate(config.dropletConfig, dropletCreatedCallback(this.map, this.id));
-	}
-}
-
-Game.prototype.setIp = function(server_ip) {
-	this.ip = server_ip;
-}
-
-//Helper function that finds a specific client within the specified room.
-findClientByDisplayName = function(roomId, displayName) {
-	for(client in users[roomId]) {
-		if(client.displayName == displayName) {
-			return client;
-		}
-	}
-	return null;
 };
 
 //Callback function for when a droplet has been created.
@@ -383,6 +296,7 @@ initiateRemoteConnection = function(selectedMap, statusCheck, roomId) {
 
 				var sshCommand = config.updateSSHCommand(body.droplet.networks.v4[0].ip_address, selectedMap);
 				setTimeout(function() {
+					console.log(sshCommand);
 					ssh('root@'+body.droplet.networks.v4[0].ip_address, {
 						command: sshCommand,
 						privateKey: config.sshKey,
@@ -414,9 +328,4 @@ dropletDestroyedCallback = function(err, resp, body) {
 	} else {
 		console.log(body);
 	}
-}
-
-//Returns a randomly chosen player to lead the room.
-clientCaptainSelect = function(pool) {
-	return pool[0];
 }
