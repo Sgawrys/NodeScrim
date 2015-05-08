@@ -67,12 +67,14 @@ passport.use(new SteamStrategy({
 ));
 
 app.get('/', function(req, res) {
+	var currentEnv = ensureEnvironment();
 	res.render('index', {
 		displayName : null,
 		id : null,
 		photo_s : null,
 		photo_m : null,
-		photo_l : null
+		photo_l : null,
+		env: currentEnv
 	});
 });
 
@@ -101,12 +103,14 @@ app.get('/room/:roomId',
 //Redirection to home page with new user information to display.
 app.get('/login', ensureAuthenticated,
 	function(req, res) {
+		var currentEnv = ensureEnvironment();
 		res.render('index', { 
 			displayName : req.user.displayName,
 			id : req.user.id,
 			photo_s : req.user.photos[0].value,
 			photo_m : req.user.photos[1].value,
-			photo_l : req.user.photos[2].value
+			photo_l : req.user.photos[2].value,
+			env: currentEnv
 		}
 	);
 });
@@ -258,6 +262,14 @@ function ensureAuthenticated(req, res, next) {
 	if(req.isAuthenticated()) { return next(); }
 	res.redirect('/');
 };
+
+//Whether or not application is currently running in dev or prod.
+function ensureEnvironment() {
+	if(process.env.NODE_ENV == 'prod') {
+		return 0;
+	}
+	return 1;
+}
 
 //Callback function for when a droplet has been created.
 dropletCreatedCallback = function(selectedMap, roomId) {

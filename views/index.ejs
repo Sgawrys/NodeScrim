@@ -34,8 +34,10 @@
   </head>
   <body>
   	<div class="row">
-  		<div id="create" class="button">Create Server</div>
-  		<div id="rcon" class="button">Rcon!</div>
+  		<%if (env == 1) { %>
+  			<div id="create" class="button">Create Server</div>
+  			<div id="rcon" class="button">Rcon!</div>
+  		<% } %>
 		<div>
 			<%if (displayName != null) { %>
 				<h1>Currently signed in as : <%= displayName %> </h1>
