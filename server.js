@@ -53,11 +53,7 @@ passport.deserializeUser(function(obj, done) {
 });
 
 //SteamStrategy as defined under passport-steam, API key is stored in config.js .
-passport.use(new SteamStrategy({
-	returnURL: 'http://localhost:8080/auth/return',
-	realm:'http://localhost:8080/',
-	apiKey: config.steamAPIKey
-},
+passport.use(correctSteamStrategy,
 	function(identifier, profile, done) {
 		process.nextTick(function () {
 			profile.identifier = identifier;
@@ -65,6 +61,22 @@ passport.use(new SteamStrategy({
 		});
 	}
 ));
+
+correctSteamStrategy = function() {
+	if(ensureEnvironment()) {
+		return new SteamStrategy({
+			returnURL: 'http://localhost:8080/auth/return',
+			realm:'http://localhost:8080/',
+			apiKey: config.steamAPIKey
+		});
+	}
+	//Production ready values taken from configuration
+	return new SteamStrategy({
+			returnURL: process.env.REALM + '/auth/return',
+			realm: process.env.REALM,
+			apiKey: config.steamAPIKey
+		});
+}
 
 app.get('/', function(req, res) {
 	var currentEnv = ensureEnvironment();
